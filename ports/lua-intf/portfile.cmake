@@ -13,17 +13,6 @@ vcpkg_from_github(
     HEAD_REF master
 )
 
-vcpkg_acquire_msys(MSYS_ROOT)
-set(BASH ${MSYS_ROOT}/usr/bin/bash.exe)
-
-message(STATUS "Installing MSYS Packages")
-vcpkg_execute_required_process(
-    COMMAND
-        ${BASH} --noprofile --norc -c
-            'PATH=/usr/bin:\$PATH pacman -Sy --noconfirm --needed make'
-    WORKING_DIRECTORY ${MSYS_ROOT}
-    LOGNAME pacman-${TARGET_TRIPLET})
-
 # Copy libraries
 file(GLOB INDLUDES ${SOURCE_PATH}/LuaIntf/*)
 file(INSTALL ${INDLUDES} DESTINATION ${CURRENT_PACKAGES_DIR}/include)
