@@ -1,14 +1,5 @@
-# Common Ambient Variables:
-#   CURRENT_BUILDTREES_DIR    = ${VCPKG_ROOT_DIR}\buildtrees\${PORT}
-#   CURRENT_PACKAGES_DIR      = ${VCPKG_ROOT_DIR}\packages\${PORT}_${TARGET_TRIPLET}
-#   CURRENT_PORT_DIR          = ${VCPKG_ROOT_DIR}\ports\${PORT}
-#   PORT                      = current port name (zlib, etc)
-#   TARGET_TRIPLET            = current triplet (x86-windows, x64-windows-static, etc)
-#   VCPKG_CRT_LINKAGE         = C runtime linkage type (static, dynamic)
-#   VCPKG_LIBRARY_LINKAGE     = target library linkage type (static, dynamic)
-#   VCPKG_ROOT_DIR            = <C:\path\to\current\vcpkg>
-#   VCPKG_TARGET_ARCHITECTURE = target architecture (x64, x86, arm)
-#
+# Specify version
+set(VERSION "3.19")
 
 include(vcpkg_common_functions)
 
@@ -16,9 +7,6 @@ include(vcpkg_common_functions)
 if(NOT ${TARGET_TRIPLET} MATCHES "x86-windows-static")
         message(FATAL_ERROR "A supported triplet is only x86-windows-static.")
 endif()
-
-# Specify version
-set(VERSION "3.19")
 
 # Prepair sources
 set(SOURCE_PATH ${CURRENT_BUILDTREES_DIR}/src/DxLibMake)
