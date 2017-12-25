@@ -1,5 +1,7 @@
 # Specify version
-set(VERSION 3.19)
+set(MAJOR_VERSION 3)
+set(MINOR_VERSION 19)
+set(VERSION ${MAJOR_VERSION}.${MINOR_VERSION})
 
 include(vcpkg_common_functions)
 
@@ -11,7 +13,7 @@ endif()
 # Prepair sources
 set(SOURCE_PATH ${CURRENT_BUILDTREES_DIR}/src/DxLib_VC)
 vcpkg_download_distfile(ARCHIVE
-    URLS "http://dxlib.o.oo7.jp/DxLib/DxLib_${VERSION}.exe"
+    URLS "http://dxlib.o.oo7.jp/DxLib/DxLib_VC${MAJOR_VERSION}_${MINOR_VERSION}.exe"
     FILENAME "dxlib-${VERSION}.exe"
     SHA512 36287fa941ffe15777ca4f8547aa933a0597051612739f07f8ffdf05a6c9b7c391d55b06774482596618f738b9e1e77eb132f8b0397000e165c64e806fd2b048
 )
