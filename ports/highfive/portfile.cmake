@@ -1,13 +1,36 @@
 include(vcpkg_common_functions)
-set(SOURCE_PATH ${CURRENT_BUILDTREES_DIR}/src/HighFive-1.3)
-vcpkg_download_distfile(ARCHIVE
-    URLS "https://github.com/BlueBrain/HighFive/archive/v1.3.tar.gz"
-    FILENAME "highfive.v1.3.tar.gz"
-    SHA512 258efae1ef5eed45ac1cf93c21c79fab9ee3c340d49a36a4aa2b43c98df1c80db9167a40a0b6a59c4f99b7c190d41d545b53c0f2c5c59aabaffc4b2584b4390b
-)
-vcpkg_extract_source_archive(${ARCHIVE})
 
-# Copy the highfive header files
-file(INSTALL ${SOURCE_PATH}/include DESTINATION ${CURRENT_PACKAGES_DIR} FILES_MATCHING PATTERN "*.hpp")
+vcpkg_from_github(
+    OUT_SOURCE_PATH SOURCE_PATH
+    REPO BlueBrain/HighFive
+    REF v2.0
+    SHA512 d6bc38ae421adfa3cb9ee761ec92819bebe385cb100a8227bd9ff436cd7ae31725a96264a7963cfe5ce806cdd3b7978a8a630e9312c1567f6df6029062c6b8a0
+    HEAD_REF master
+)
+
+if(${VCPKG_LIBRARY_LINKAGE} MATCHES "static")
+    set(HDF5_USE_STATIC_LIBRARIES ON)
+endif()
+
+vcpkg_configure_cmake(
+    SOURCE_PATH ${SOURCE_PATH}
+    PREFER_NINJA
+    OPTIONS
+        -DHIGHFIVE_UNIT_TESTS=OFF
+        -DHIGHFIVE_EXAMPLES=OFF
+        -DUSE_BOOST=OFF
+        -DHIGH_FIVE_DOCUMENTATION=OFF
+        -DHDF5_USE_STATIC_LIBRARIES=${HDF5_USE_STATIC_LIBRARIES}
+)
+
+vcpkg_install_cmake()
+
+vcpkg_fixup_cmake_targets(CONFIG_PATH share/HighFive/CMake)
+
+file(REMOVE_RECURSE ${CURRENT_PACKAGES_DIR}/debug)
+if(NOT (NOT VCPKG_CMAKE_SYSTEM_NAME OR VCPKG_CMAKE_SYSTEM_NAME STREQUAL "WindowsStore") AND NOT VCPKG_CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  file(REMOVE_RECURSE ${CURRENT_PACKAGES_DIR}/share/HighFive)
+endif()
+
 # Handle copyright
 file(INSTALL ${SOURCE_PATH}/LICENSE DESTINATION ${CURRENT_PACKAGES_DIR}/share/highfive RENAME copyright)

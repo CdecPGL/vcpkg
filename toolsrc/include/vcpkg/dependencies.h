@@ -7,7 +7,13 @@
 #include <vcpkg/statusparagraphs.h>
 #include <vcpkg/vcpkgpaths.h>
 
+#include <functional>
 #include <vector>
+
+namespace vcpkg::Graphs
+{
+    struct Randomizer;
+}
 
 namespace vcpkg::Dependencies
 {
@@ -23,23 +29,10 @@ namespace vcpkg::Dependencies
                                  const Build::BuildPackageOptions& options);
     std::string to_output_string(RequestType request_type, const CStringView s);
 
-    struct AnyParagraph
-    {
-        std::vector<PackageSpec> dependencies(const Triplet& triplet) const;
-
-        Optional<StatusParagraph> status_paragraph;
-        Optional<BinaryControlFile> binary_control_file;
-        Optional<const SourceControlFile*> source_control_file;
-    };
-}
-
-namespace vcpkg::Dependencies
-{
     enum class InstallPlanType
     {
         UNKNOWN,
         BUILD_AND_INSTALL,
-        INSTALL,
         ALREADY_INSTALLED,
         EXCLUDED
     };
@@ -48,25 +41,31 @@ namespace vcpkg::Dependencies
     {
         static bool compare_by_name(const InstallPlanAction* left, const InstallPlanAction* right);
 
-        InstallPlanAction();
+        InstallPlanAction() noexcept;
+
+        InstallPlanAction(InstalledPackageView&& spghs,
+                          const std::set<std::string>& features,
+                          const RequestType& request_type);
 
         InstallPlanAction(const PackageSpec& spec,
-                          const std::unordered_set<std::string>& features,
-                          const RequestType& request_type);
-        InstallPlanAction(const PackageSpec& spec, const AnyParagraph& any_paragraph, const RequestType& request_type);
-        InstallPlanAction(const PackageSpec& spec,
-                          const SourceControlFile& any_paragraph,
-                          const std::unordered_set<std::string>& features,
-                          const RequestType& request_type);
+                          const SourceControlFile& scf,
+                          const std::set<std::string>& features,
+                          const RequestType& request_type,
+                          std::vector<PackageSpec>&& dependencies);
 
         std::string displayname() const;
 
         PackageSpec spec;
-        AnyParagraph any_paragraph;
+
+        Optional<const SourceControlFile&> source_control_file;
+        Optional<InstalledPackageView> installed_package;
+
         InstallPlanType plan_type;
         RequestType request_type;
         Build::BuildPackageOptions build_options;
-        std::unordered_set<std::string> feature_list;
+        std::set<std::string> feature_list;
+
+        std::vector<PackageSpec> computed_dependencies;
     };
 
     enum class RemovePlanType
@@ -80,7 +79,7 @@ namespace vcpkg::Dependencies
     {
         static bool compare_by_name(const RemovePlanAction* left, const RemovePlanAction* right);
 
-        RemovePlanAction();
+        RemovePlanAction() noexcept;
         RemovePlanAction(const PackageSpec& spec, const RemovePlanType& plan_type, const RequestType& request_type);
 
         PackageSpec spec;
@@ -102,7 +101,7 @@ namespace vcpkg::Dependencies
     enum class ExportPlanType
     {
         UNKNOWN,
-        PORT_AVAILABLE_BUT_NOT_BUILT,
+        NOT_BUILT,
         ALREADY_BUILT
     };
 
@@ -110,13 +109,22 @@ namespace vcpkg::Dependencies
     {
         static bool compare_by_name(const ExportPlanAction* left, const ExportPlanAction* right);
 
-        ExportPlanAction();
-        ExportPlanAction(const PackageSpec& spec, const AnyParagraph& any_paragraph, const RequestType& request_type);
+        ExportPlanAction() noexcept;
+        ExportPlanAction(const PackageSpec& spec,
+                         InstalledPackageView&& installed_package,
+                         const RequestType& request_type);
+
+        ExportPlanAction(const PackageSpec& spec, const RequestType& request_type);
 
         PackageSpec spec;
-        AnyParagraph any_paragraph;
         ExportPlanType plan_type;
         RequestType request_type;
+
+        Optional<const BinaryParagraph&> core_paragraph() const;
+        std::vector<PackageSpec> dependencies(const Triplet& triplet) const;
+
+    private:
+        Optional<InstalledPackageView> m_installed_package;
     };
 
     struct PortFileProvider
@@ -146,40 +154,45 @@ namespace vcpkg::Dependencies
     struct ClusterGraph;
     struct GraphPlan;
 
+    struct CreateInstallPlanOptions
+    {
+        Graphs::Randomizer* randomizer = nullptr;
+    };
+
     struct PackageGraph
     {
         PackageGraph(const PortFileProvider& provider, const StatusParagraphs& status_db);
         ~PackageGraph();
 
-        void install(const FeatureSpec& spec);
-        void upgrade(const PackageSpec& spec);
+        void install(const FeatureSpec& spec,
+                     const std::unordered_set<std::string>& prevent_default_features = {}) const;
+        void upgrade(const PackageSpec& spec) const;
 
-        std::vector<AnyAction> serialize() const;
+        std::vector<AnyAction> serialize(const CreateInstallPlanOptions& options = {}) const;
 
     private:
         std::unique_ptr<GraphPlan> m_graph_plan;
         std::unique_ptr<ClusterGraph> m_graph;
     };
 
-    std::vector<InstallPlanAction> create_install_plan(const PortFileProvider& port_file_provider,
-                                                       const std::vector<PackageSpec>& specs,
-                                                       const StatusParagraphs& status_db);
-
     std::vector<RemovePlanAction> create_remove_plan(const std::vector<PackageSpec>& specs,
                                                      const StatusParagraphs& status_db);
 
-    std::vector<ExportPlanAction> create_export_plan(const PortFileProvider& port_file_provider,
-                                                     const VcpkgPaths& paths,
-                                                     const std::vector<PackageSpec>& specs,
+    std::vector<ExportPlanAction> create_export_plan(const std::vector<PackageSpec>& specs,
                                                      const StatusParagraphs& status_db);
 
     std::vector<AnyAction> create_feature_install_plan(const std::unordered_map<std::string, SourceControlFile>& map,
                                                        const std::vector<FeatureSpec>& specs,
                                                        const StatusParagraphs& status_db);
 
-    std::vector<AnyAction> create_feature_install_plan(const PortFileProvider& port_file_provider,
+    /// <summary>Figure out which actions are required to install features specifications in `specs`.</summary>
+    /// <param name="provider">Contains the ports of the current environment.</param>
+    /// <param name="specs">Feature specifications to resolve dependencies for.</param>
+    /// <param name="status_db">Status of installed packages in the current environment.</param>
+    std::vector<AnyAction> create_feature_install_plan(const PortFileProvider& provider,
                                                        const std::vector<FeatureSpec>& specs,
-                                                       const StatusParagraphs& status_db);
+                                                       const StatusParagraphs& status_db,
+                                                       const CreateInstallPlanOptions& options = {});
 
     void print_plan(const std::vector<AnyAction>& action_plan, const bool is_recursive = true);
 }

@@ -2,17 +2,16 @@ include(vcpkg_common_functions)
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO tbeu/matio
-    REF v1.5.10
-    SHA512  c06ff6b3d17a136be20cebca4e1a4bb87eea98e35d979713e73f855487dee568895245528b1b8e55caf02f88aff1b742daf75f590e2d3b08158d0ad73e377243
+    REF v1.5.15
+    SHA512 5e80aef3e929ff306810861ba14bc82bdd9cb3090de60dbd6905cfa35706d8cbe6c40471e8abf41e5d0836c10083c359449d34bdf32c6b2022a73986e8303eb3
     HEAD_REF master
 )
 
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt DESTINATION ${SOURCE_PATH})
 
-
-
 vcpkg_configure_cmake(
     SOURCE_PATH ${SOURCE_PATH}
+    PREFER_NINJA
     OPTIONS_DEBUG -DDISABLE_INSTALL_HEADERS=ON
 )
 

@@ -1,10 +1,12 @@
 include(vcpkg_common_functions)
 
+vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
+
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO google/butteraugli
-    REF 8c60a2aefa19adb40e457be5358d7cc93205c72f
-    SHA512 ff3d8fd952d291b51dab60cef6fa46b723c4a7b649c3df70f89c63febce865dc6a2e5f95ca165ea4424fed52a57c2d76c918eb31646c44ba34a0fa51a003c9dd
+    REF 71b18b636b9c7d1ae0c1d3730b85b3c127eb4511
+    SHA512 2e73f8ad8953307eea956ed8bd828e110419d6d9f8a42685d225953d3a8017a79d0701bde0282459dc51198e75a99dcd99dd3c4e7ef065736c512a7b11ea0fdf
     HEAD_REF master
 )
 
