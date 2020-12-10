@@ -1,12 +1,12 @@
-include(vcpkg_common_functions)
+vcpkg_fail_port_install(ON_TARGET "uwp")
 
 vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
 
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO googleapis/google-cloud-cpp
-    REF v0.15.0
-    SHA512 f8cc8f9d47a4df1d76ac7b0836fe107f2f199070a89ab5136f66aa1be5f08737495dbb3f4cf7f709ac0a1346648d869af639836b85b552c6791fa8bb85362a91
+    REF v1.21.0
+    SHA512 a7988156cef199934ad471eb79724c59eb5a2ff941d71887257c5e95a39d1c78ee9e4295a6e42585a3ce11a4cd9d10af64fbf423560936b8546b26c772e6fa2c
     HEAD_REF master
 )
 
@@ -15,8 +15,8 @@ vcpkg_configure_cmake(
     PREFER_NINJA
     DISABLE_PARALLEL_CONFIGURE
     OPTIONS
-        -DGOOGLE_CLOUD_CPP_DEPENDENCY_PROVIDER=package
         -DGOOGLE_CLOUD_CPP_ENABLE_MACOS_OPENSSL_CHECK=OFF
+        -DGOOGLE_CLOUD_CPP_ENABLE_WERROR=OFF
         -DBUILD_TESTING=OFF
 )
 
@@ -26,6 +26,6 @@ file(REMOVE_RECURSE ${CURRENT_PACKAGES_DIR}/debug/include)
 vcpkg_fixup_cmake_targets(CONFIG_PATH lib/cmake TARGET_PATH share)
 
 file(REMOVE_RECURSE ${CURRENT_PACKAGES_DIR}/debug/share)
-file(INSTALL ${SOURCE_PATH}/LICENSE DESTINATION ${CURRENT_PACKAGES_DIR}/share/google-cloud-cpp RENAME copyright)
+file(INSTALL ${SOURCE_PATH}/LICENSE DESTINATION ${CURRENT_PACKAGES_DIR}/share/${PORT} RENAME copyright)
 
 vcpkg_copy_pdbs()

@@ -1,13 +1,14 @@
-include(vcpkg_common_functions)
-
 vcpkg_buildpath_length_warning(37)
 
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO aws/aws-sdk-cpp
-    REF d3ee022fea02e8e7e02f3cdd77904dc4c39ab79a
-    SHA512 6f146830f15864bb3770ad50a6ebcbc478235e9c2c59aa044353bbfc297bf26437e07b77b970974cc294782809aaa837a3407cbc846426b04e97447cd7f9e3cf
+    REF e98e5732ec7319051f162f7314ae361c85d0a8c9 # 1.8.83
+    SHA512 da540db60551be833ea0315dd93241f9740ab953ed5657c1c7a8c401ae52a4e75b116758420b0a8a4ebb79358dff8377f5e052b180b36f0af27a36003f28bd56
     HEAD_REF master
+    PATCHES
+        patch-relocatable-rpath.patch
+        fix-AWSSDKCONFIG.patch
 )
 
 string(COMPARE EQUAL "${VCPKG_CRT_LINKAGE}" "dynamic" FORCE_SHARED_CRT)
@@ -16,14 +17,14 @@ set(BUILD_ONLY core)
 
 include(${CMAKE_CURRENT_LIST_DIR}/compute_build_only.cmake)
 
-if(CMAKE_HOST_WIN32)
-    string(REPLACE ";" "\\\\\\;" BUILD_ONLY "${BUILD_ONLY}")
+if(VCPKG_TARGET_IS_OSX OR VCPKG_TARGET_IS_IOS)
+    set(rpath "@loader_path")
 else()
-    string(REPLACE ";" "\\\\\\\\\\\;" BUILD_ONLY "${BUILD_ONLY}")
+    set(rpath "\$ORIGIN")
 endif()
-
 vcpkg_configure_cmake(
     SOURCE_PATH ${SOURCE_PATH}
+    DISABLE_PARALLEL_CONFIGURE
     PREFER_NINJA
     OPTIONS
         -DENABLE_UNITY_BUILD=ON
@@ -32,6 +33,7 @@ vcpkg_configure_cmake(
         -DCMAKE_DISABLE_FIND_PACKAGE_Git=TRUE
         "-DBUILD_ONLY=${BUILD_ONLY}"
         -DBUILD_DEPS=OFF
+        -DCMAKE_INSTALL_RPATH=${rpath}
 )
 
 vcpkg_install_cmake()
@@ -60,7 +62,6 @@ endforeach()
 file(REMOVE_RECURSE
     ${CURRENT_PACKAGES_DIR}/debug/include
     ${CURRENT_PACKAGES_DIR}/debug/share
-    ${CURRENT_PACKAGES_DIR}/share/AWSSDK
     ${CURRENT_PACKAGES_DIR}/lib/pkgconfig
     ${CURRENT_PACKAGES_DIR}/debug/lib/pkgconfig
     ${CURRENT_PACKAGES_DIR}/nuget
@@ -82,5 +83,7 @@ if(VCPKG_LIBRARY_LINKAGE STREQUAL dynamic)
     file(APPEND ${CURRENT_PACKAGES_DIR}/include/aws/core/SDKConfig.h "#ifndef USE_IMPORT_EXPORT\n#define USE_IMPORT_EXPORT\n#endif")
 endif()
 
+configure_file(${CURRENT_PORT_DIR}/usage ${CURRENT_PACKAGES_DIR}/share/${PORT}/usage @ONLY)
+
 # Handle copyright
-file(INSTALL ${SOURCE_PATH}/LICENSE DESTINATION ${CURRENT_PACKAGES_DIR}/share/aws-sdk-cpp RENAME copyright)
+file(INSTALL ${SOURCE_PATH}/LICENSE DESTINATION ${CURRENT_PACKAGES_DIR}/share/${PORT} RENAME copyright)
